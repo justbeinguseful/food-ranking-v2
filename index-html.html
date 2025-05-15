@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Ranking Tool</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .score-green { background-color: #d4edda; }
+    .score-yellow { background-color: #fff3cd; }
+    .score-red { background-color: #f8d7da; }
+    
+    .slider-container {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    
+    .section-title {
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .table-fixed {
+      table-layout: fixed;
+    }
+    
+    .table-fixed th:first-child,
+    .table-fixed td:first-child {
+      width: 100px;
+    }
+    
+    .table-container {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .filter-container {
+        flex-direction: column;
+      }
+      
+      .filter-container > * {
+        margin-bottom: 10px;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container my-4">
+    <!-- Introduction Section -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h1 class="card-title">Food Ranking Tool</h1>
+        <p class="card-text">Personalize your food choices based on health goals, dietary preferences, and expert recommendations.</p>
+        
+        <h5>How to use:</h5>
+        <ol>
+          <li>Adjust the sliders to match your priorities</li>
+          <li>Use the filters to find specific foods or categories</li>
+          <li>Foods will be ranked automatically based on your preferences</li>
+          <li>Green scores (7-10) are best choices, yellow (4-6) are moderate, and red (1-3) should be limited</li>
+        </ol>
+        
+        <h5>About the data:</h5>
+        <p>The rankings are based on research from health and nutrition experts, diet frameworks, and scientific literature. The scores reflect how well each food aligns with different health goals and dietary approaches.</p>
+        
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#howItWorks">
+          How it works
+        </button>
+      </div>
+    </div>
+    
+    <div class="collapse mb-4" id="howItWorks">
+      <div class="card card-body">
+        <h5>The science behind the tool:</h5>
+        <p>Each food in our database has been scored across multiple dimensions:</p>
+        <ul>
+          <li><strong>Expert opinions:</strong> Ratings based on recommendations from health experts like Bryan Johnson, David Sinclair, and Andrew Huberman</li>
+          <li><strong>Diet frameworks:</strong> Compatibility with popular diets like Mediterranean, Keto, MIND, etc.</li>
+          <li><strong>Health goals:</strong> Support for specific health objectives like longevity, brain health, etc.</li>
+          <li><strong>Health factors:</strong> Consideration of glycemic impact and contaminant risk</li>
+        </ul>
+        
+        <p>The tool calculates a weighted average based on your preferences. A higher weight means that factor has more influence on the final score.</p>
+      </div>
+    </div>
+    
+    <!-- Preferences Section -->
+    <div class="row mb-4">
+      <!-- Goals Section -->
+      <div class="col-md-12 mb-4">
+        <h3 class="section-title">What are your goals?</h3>
+        <div class="row" id="goals-sliders">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Health Factors Section -->
+      <div class="col-md-12 mb-4">
+        <h3 class="section-title">Which health factors are important to you?</h3>
+        <div class="row" id="factors-sliders">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Experts Section -->
+      <div class="col-md-12 mb-4">
+        <h3 class="section-title">Are there any experts you would like to mimic?</h3>
+        <div class="row" id="experts-sliders">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Diets Section -->
+      <div class="col-md-12 mb-4">
+        <h3 class="section-title">Are there any specific diets you would like to focus on?</h3>
+        <div class="row" id="diets-sliders">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="d-flex flex-wrap filter-container gap-2 mb-4">
+      <input type="text" id="food-search" class="form-control" placeholder="Search foods...">
+      <select id="category-filter" class="form-select">
+        <option value="">All categories</option>
+        <!-- Will be populated by JavaScript -->
+      </select>
+      <button id="reset-filters" class="btn btn-secondary">Reset Filters</button>
+      <button id="export-results" class="btn btn-success ms-auto">Export Results</button>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="text-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading food data...</p>
+    </div>
+    
+    <!-- Results Table -->
+    <div id="results-container" style="display: none;">
+      <h3 class="section-title">Your Food Rankings</h3>
+      <p id="results-count" class="mb-3"></p>
+      
+      <div class="table-container">
+        <table class="table table-striped table-bordered table-fixed">
+          <thead class="sticky-top bg-light">
+            <tr>
+              <th>Score</th>
+              <th>Food</th>
+              <th>Category</th>
+              <th>Comments</th>
+            </tr>
+          </thead>
+          <tbody id="results-table">
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div id="no-results" class="alert alert-warning mt-4" style="display: none;">
+      No foods match your current filters. Try adjusting your search or category filters.
+    </div>
+    
+    <footer class="mt-5 mb-4 text-center text-muted">
+      <p>Food Ranking Tool &copy; 2025</p>
+    </footer>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+  <script>
+    // Configuration
+    const DATA_FILE = 'data.csv';
+    
+    // Store all our data
+    let allFoods = [];
+    let filteredFoods = [];
+    let categories = [];
+    let weights = {};
+    
+    // Define our categories
+    const experts = ["Bryan Johnson", "David Sinclair", "Huberman"];
+    const diets = ["Mediterranean Diet", "Keto Diet", "MIND diet", "Paleo Diet", "Vegan Diet", "Atkins Diet", 
+                   "Gluten-Free Diet", "Vegetarian Diet", "Flexitarian Diet", "Autoimmune Protocol Diet", "Blue Zone Diet"];
+    const goals = ["Longevity", "Brain health (MIND)", "Alzheimer prevention", "Muscle building"];
+    const factors = ["Low Glycemic / Insulin Impact", "Contaminant / Toxicity Risk"];
+    
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize weights (all set to 5 by default)
+      [...experts, ...diets, ...goals, ...factors].forEach(category => {
+        weights[category] = 5;
+      });
+      
+      // Set up UI components
+      setupSliders();
+      setupEventListeners();
+      
+      // Load data
+      loadFoodData();
+    });
+    
+    // Set up the slider UI
+    function setupSliders() {
+      // Create sliders for each category
+      createSliders('goals-sliders', goals, 3);
+      createSliders('factors-sliders', factors, 6);
+      createSliders('experts-sliders', experts, 4);
+      createSliders('diets-sliders', diets, 3);
+    }
+    
+    // Create sliders for a category
+    function createSliders(containerId, items, colSize) {
+      const container = document.getElementById(containerId);
+      
+      items.forEach(item => {
+        const col = document.createElement('div');
+        col.className = `col-md-${colSize} mb-3`;
+        
+        const sliderContainer = document.createElement('div');
+        sliderContainer.className = 'slider-container';
+        
+        const labelContainer = document.createElement('div');
+        labelContainer.className = 'slider-label';
+        
+        const label = document.createElement('span');
+        label.textContent = item;
+        
+        const value = document.createElement('span');
+        value.textContent = weights[item] || 5;
+        value.id = `${item.replace(/\s+/g, '-').toLowerCase()}-value`;
+        
+        labelContainer.appendChild(label);
+        labelContainer.appendChild(value);
+        
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '1';
+        slider.max = '10';
+        slider.value = weights[item] || 5;
+        slider.className = 'form-range';
+        slider.id = `${item.replace(/\s+/g, '-').toLowerCase()}-slider`;
+        
+        // Add event listener to update weight when slider changes
+        slider.addEventListener('input', function() {
+          const newValue = parseInt(this.value);
+          weights[item] = newValue;
+          document.getElementById(`${item.replace(/\s+/g, '-').toLowerCase()}-value`).textContent = newValue;
+          updateResults();
+        });
+        
+        sliderContainer.appendChild(labelContainer);
+        sliderContainer.appendChild(slider);
+        col.appendChild(sliderContainer);
+        container.appendChild(col);
+      });
+    }
+    
+    // Set up event listeners
+    function setupEventListeners() {
+      // Search input
+      document.getElementById('food-search').addEventListener('input', function() {
+        updateResults();
+      });
+      
+      // Category filter
+      document.getElementById('category-filter').addEventListener('change', function() {
+        updateResults();
+      });
+      
+      // Reset filters button
+      document.getElementById('reset-filters').addEventListener('click', function() {
+        document.getElementById('food-search').value = '';
+        document.getElementById('category-filter').value = '';
+        updateResults();
+      });
+      
+      // Export results button
+      document.getElementById('export-results').addEventListener('click', exportResults);
+    }
+    
+    // Load food data from CSV file
+    function loadFoodData() {
+      Papa.parse(DATA_FILE, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          // Process the data
+          allFoods = results.data.filter(food => food.Food && food.Food.trim() !== '');
+          
+          // Extract categories
+          categories = [...new Set(allFoods.map(food => food.Category))].filter(Boolean).sort();
+          
+          // Populate category dropdown
+          const categorySelect = document.getElementById('category-filter');
+          categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+          });
+          
+          // Hide loading spinner and show results
+          document.getElementById('loading-spinner').style.display = 'none';
+          document.getElementById('results-container').style.display = 'block';
+          
+          // Initial calculation of results
+          updateResults();
+        },
+        error: function(error) {
+          console.error('Error loading food data:', error);
+          document.getElementById('loading-spinner').style.display = 'none';
+          alert('Error loading food data. Please check the console for details.');
+        }
+      });
+    }
+    
+    // Update the filtered results based on current weights and filters
+    function updateResults() {
+      // Get filter values
+      const searchText = document.getElementById('food-search').value.toLowerCase();
+      const categoryFilter = document.getElementById('category-filter').value;
+      
+      // Apply filters first
+      const foodsToScore = allFoods.filter(food => {
+        const matchesSearch = !searchText || food.Food.toLowerCase().includes(searchText);
+        const matchesCategory = !categoryFilter || food.Category === categoryFilter;
+        return matchesSearch && matchesCategory;
+      });
+      
+      // Calculate scores for each food
+      filteredFoods = foodsToScore.map(food => {
+        let totalWeightedScore = 0;
+        let totalWeight = 0;
+        
+        // Sum up weighted scores for all categories
+        Object.keys(weights).forEach(category => {
+          if (food[category] !== undefined && food[category] !== null) {
+            totalWeightedScore += food[category] * weights[category];
+            totalWeight += weights[category];
+          }
+        });
+        
+        // Calculate final score (avoid division by zero)
+        const finalScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 0;
+        
+        return {
+          ...food,
+          _score: finalScore
+        };
+      });
+      
+      // Sort by score (highest first)
+      filteredFoods.sort((a, b) => b._score - a._score);
+      
+      // Update the UI
+      displayResults();
+    }
+    
+    // Display the results in the table
+    function displayResults() {
+      const tableBody = document.getElementById('results-table');
+      const resultsCount = document.getElementById('results-count');
+      const noResults = document.getElementById('no-results');
+      
+      // Clear previous results
+      tableBody.innerHTML = '';
+      
+      if (filteredFoods.length === 0) {
+        // Show no results message
+        resultsCount.textContent = 'No foods match your criteria.';
+        noResults.style.display = 'block';
+        document.getElementById('results-container').style.display = 'none';
+      } else {
+        // Update count
+        resultsCount.textContent = `Showing ${filteredFoods.length} foods ranked by your preferences.`;
+        noResults.style.display = 'none';
+        document.getElementById('results-container').style.display = 'block';
+        
+        // Add rows to table
+        filteredFoods.forEach(food => {
+          const row = document.createElement('tr');
+          
+          // Score cell with color coding
+          const scoreCell = document.createElement('td');
+          const score = food._score.toFixed(1);
+          scoreCell.textContent = score;
+          
+          if (score >= 7) {
+            scoreCell.className = 'score-green';
+          } else if (score >= 4) {
+            scoreCell.className = 'score-yellow';
+          } else {
+            scoreCell.className = 'score-red';
+          }
+          
+          // Other cells
+          const foodCell = document.createElement('td');
+          foodCell.textContent = food.Food;
+          
+          const categoryCell = document.createElement('td');
+          categoryCell.textContent = food.Category;
+          
+          const commentsCell = document.createElement('td');
+          commentsCell.textContent = food.Comments || '';
+          
+          // Add cells to row
+          row.appendChild(scoreCell);
+          row.appendChild(foodCell);
+          row.appendChild(categoryCell);
+          row.appendChild(commentsCell);
+          
+          // Add row to table
+          tableBody.appendChild(row);
+        });
+      }
+    }
+    
+    // Export results to CSV file
+    function exportResults() {
+      if (filteredFoods.length === 0) {
+        alert('No results to export.');
+        return;
+      }
+      
+      // Create CSV content
+      let csvContent = "data:text/csv;charset=utf-8,";
+      
+      // Add header row
+      csvContent += "Score,Food,Category,Comments\n";
+      
+      // Add data rows
+      filteredFoods.forEach(food => {
+        const score = food._score.toFixed(1);
+        const foodName = food.Food.replace(/,/g, ' ');
+        const category = (food.Category || '').replace(/,/g, ' ');
+        const comments = (food.Comments || '').replace(/,/g, ' ').replace(/"/g, '""');
+        
+        csvContent += `${score},"${foodName}","${category}","${comments}"\n`;
+      });
+      
+      // Create download link
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "food_rankings.csv");
+      document.body.appendChild(link);
+      
+      // Trigger download
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
